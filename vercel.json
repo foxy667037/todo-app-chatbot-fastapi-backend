@@ -1,0 +1,10 @@
+{
+  "$schema": "https://vercel.sh",
+  "framework": "fastapi",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "app/main.py"
+    }
+  ]
+}
