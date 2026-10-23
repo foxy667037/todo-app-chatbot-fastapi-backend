@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.config import settings
 from app.api.v1.endpoints import auth, users, tasks, chatbot
@@ -23,7 +24,22 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="Todo Management API", version="1.0.0", lifespan=lifespan)
 
+class LimitContentLengthMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        content_length = request.headers.get("content-length")
+        if (
+            content_length
+            and content_length.isdecimal()
+            and int(content_length) > 1_048_576
+        ):
+            return JSONResponse(
+                status_code=413,
+                content={"detail": "Request body exceeds the 1 MiB limit"},
+            )
+        return await call_next(request)
+
 app.add_middleware(
+    LimitContentLengthMiddleware,
     CORSMiddleware,
     allow_origins=[o.strip() for o in settings.cors_origins.split(",") if o.strip()],
     allow_credentials=True,
