@@ -24,6 +24,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="Todo Management API", version="1.0.0", lifespan=lifespan)
 
+
 class LimitContentLengthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         content_length = request.headers.get("content-length")
@@ -38,8 +39,10 @@ class LimitContentLengthMiddleware(BaseHTTPMiddleware):
             )
         return await call_next(request)
 
+
+app.add_middleware(LimitContentLengthMiddleware)
+
 app.add_middleware(
-    LimitContentLengthMiddleware,
     CORSMiddleware,
     allow_origins=[o.strip() for o in settings.cors_origins.split(",") if o.strip()],
     allow_credentials=True,
@@ -51,7 +54,11 @@ app.add_middleware(
 @app.middleware("http")
 async def limit_request_content_length(request, call_next):
     content_length = request.headers.get("content-length")
-    if content_length and content_length.isdecimal() and int(content_length) > 1_048_576:
+    if (
+        content_length
+        and content_length.isdecimal()
+        and int(content_length) > 1_048_576
+    ):
         return JSONResponse(
             status_code=413,
             content={"detail": "Request body exceeds the 1 MiB limit"},
